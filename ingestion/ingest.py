@@ -1,12 +1,12 @@
 from pathlib import Path
 from typing import List
 from langchain_classic.schema import Document
-from langchain_community.document_loaders import UnstructuredMarkdownLoader
+from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
 class IngestionPipleline:
-    def __init__(self, dir_path: str | Path, loader: UnstructuredMarkdownLoader, splitter: RecursiveCharacterTextSplitter):
+    def __init__(self, dir_path: str | Path, loader: TextLoader, splitter: RecursiveCharacterTextSplitter):
         self.dir_path = Path(dir_path)
         self.loader = loader
         self.splitter = splitter
@@ -16,7 +16,7 @@ class IngestionPipleline:
 
         for md_file in self.dir_path.rglob("*.md"):
 
-            loader = UnstructuredMarkdownLoader(str(md_file))
+            loader = TextLoader(str(md_file))
             loaded_docs = loader.load()
 
             for doc in loaded_docs:

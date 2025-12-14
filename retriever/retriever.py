@@ -1,6 +1,4 @@
 import faiss
-import nltk
-from nltk import word_tokenize
 from typing import List, Dict
 from langchain_classic.schema import Document
 from langchain_community.vectorstores import FAISS
@@ -9,8 +7,6 @@ from langchain_community.retrievers import BM25Retriever
 from langchain_ollama import OllamaEmbeddings
 import pickle
 from pathlib import Path
-
-nltk.download('punkt')
 
 class RetrievalPipeline:
     def __init__(self, embedding_model: OllamaEmbeddings, vectorstore_path: str | Path):
@@ -39,9 +35,8 @@ class RetrievalPipeline:
         vector_store.add_documents(documents=documents)
         self.vectorstore = vector_store
 
-        # Save vectorstore to disk using pathlib
         self.vectorstore_path.mkdir(parents=True, exist_ok=True)
-        faiss.write_index(index, self.vectorstore_path / "faiss.index")
+        faiss.write_index(index, str(self.vectorstore_path / "faiss.index"))
         with open(self.vectorstore_path / "docstore.pkl", "wb") as f:
             pickle.dump(vector_store.docstore, f)
 
@@ -68,11 +63,22 @@ class RetrievalPipeline:
 
     def create_bm25_retriever(self, documents: List[Document]):
         """
-        Create a BM25 retriever for sparse retrieval.
+        Create a BM25 retriever for sparse retrieval using a simple tokenizer (no NLTK).
         """
-        self.bm25_retriever = BM25Retriever.from_documents(
-            documents, k=2, preprocess_func=word_tokenize
+        def simple_tokenize(text: str):
+            return text.split()  # simple whitespace tokenizer
+
+        texts = [doc.page_content for doc in documents]
+
+        from langchain_community.retrievers import BM25Retriever
+
+        self.bm25_retriever = BM25Retriever.from_texts(
+            texts=texts,
+            k=2,
+            preprocess_func=simple_tokenize,
         )
+
+
 
     def hybrid_search(self, query: str, k: int = 5) -> List[Document]:
         """
@@ -86,7 +92,7 @@ class RetrievalPipeline:
                 results[doc.metadata.get("file_name", str(doc))] = doc
 
         if self.bm25_retriever:
-            sparse_docs = self.bm25_retriever.get_relevant_documents(query)
+            sparse_docs = self.bm25_retriever.invoke(query)
             for doc in sparse_docs:
                 results[doc.metadata.get("file_name", str(doc))] = doc
 
