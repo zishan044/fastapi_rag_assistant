@@ -1,5 +1,6 @@
 langchain
-langchain_community
+langchain-huggingface
 langchain_ollama
 faiss-cpu
 rank-bm25
+sentence-transformers

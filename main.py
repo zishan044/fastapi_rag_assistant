@@ -5,7 +5,8 @@ from retriever.retriever import RetrievalPipeline
 from chains.chains import RAGChain
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_ollama import OllamaEmbeddings, ChatOllama
+from langchain_ollama import ChatOllama
+from langchain_huggingface import HuggingFaceEmbeddings
 
 
 def main():
@@ -23,7 +24,7 @@ def main():
     )
     documents = ingestion.chunk_documents()
 
-    embeddings = OllamaEmbeddings(model="nomic-embed-text")
+    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     retriever = RetrievalPipeline(
         embedding_model=embeddings,
         vectorstore_path=vectorstore_path,
@@ -32,7 +33,7 @@ def main():
         retriever.load_vectorstore()
     else:
         retriever.build_vectorstore(documents)
-        
+
     retriever.create_bm25_retriever(documents)
 
     llm = ChatOllama(model="mistral", temperature=0)
