@@ -28,7 +28,11 @@ def main():
         embedding_model=embeddings,
         vectorstore_path=vectorstore_path,
     )
-    retriever.build_vectorstore(documents)
+    if retriever.vectorstore_exists():
+        retriever.load_vectorstore()
+    else:
+        retriever.build_vectorstore(documents)
+        
     retriever.create_bm25_retriever(documents)
 
     llm = ChatOllama(model="mistral", temperature=0)

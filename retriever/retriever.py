@@ -22,44 +22,25 @@ class RetrievalPipeline:
         """
         Create FAISS vectorstore from chunked documents and save it to disk.
         """
-        embedding_dim = 768
-        index = faiss.IndexFlatL2(embedding_dim)
-
-        vector_store = FAISS(
-            embedding_function=self.embedding_model,
-            index=index,
-            docstore=InMemoryDocstore(),
-            index_to_docstore_id={},
+        self.vectorstore = FAISS.from_documents(
+            documents=documents,
+            embedding=self.embedding_model,
         )
 
-        vector_store.add_documents(documents=documents)
-        self.vectorstore = vector_store
-
         self.vectorstore_path.mkdir(parents=True, exist_ok=True)
-        faiss.write_index(index, str(self.vectorstore_path / "faiss.index"))
-        with open(self.vectorstore_path / "docstore.pkl", "wb") as f:
-            pickle.dump(vector_store.docstore, f)
+        self.vectorstore.save_local(self.vectorstore_path)
+
 
     def load_vectorstore(self):
         """
         Load FAISS vectorstore from disk.
         """
-        index_file = self.vectorstore_path / "faiss.index"
-        docstore_file = self.vectorstore_path / "docstore.pkl"
-
-        if not index_file.exists() or not docstore_file.exists():
-            raise FileNotFoundError("Vectorstore files not found. Build vectorstore first.")
-
-        index = faiss.read_index(str(index_file))
-        with open(docstore_file, "rb") as f:
-            docstore = pickle.load(f)
-
-        self.vectorstore = FAISS(
-            embedding_function=self.embedding_model,
-            index=index,
-            docstore=docstore,
-            index_to_docstore_id={},
+        self.vectorstore = FAISS.load_local(
+            self.vectorstore_path,
+            embeddings=self.embedding_model,
+            allow_dangerous_deserialization=True,
         )
+
 
     def create_bm25_retriever(self, documents: List[Document]):
         """
@@ -97,3 +78,7 @@ class RetrievalPipeline:
                 results[doc.metadata.get("file_name", str(doc))] = doc
 
         return list(results.values())[:k]
+
+
+    def vectorstore_exists(self) -> bool:
+        return (self.vectorstore_path / "index.faiss").exists()
